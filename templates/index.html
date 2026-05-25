@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI Purple Team Platform</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div class="header-badges">
+        <span class="badge red">🔴 RED TEAM</span>
+        <span class="badge purple">⚔️ PURPLE TEAM</span>
+        <span class="badge blue">🔵 BLUE TEAM</span>
+      </div>
+      <h1>AI Purple Team Automation Platform</h1>
+      <p>Enter a MITRE ATT&CK technique — get attack simulation commands, detection rules, coverage scoring, and a full exportable report</p>
+    </header>
+
+    <div class="input-section">
+      <div class="input-row">
+        <div class="form-group">
+          <label>MITRE ATT&CK Technique ID *</label>
+          <input type="text" id="technique-id" placeholder="e.g. T1059.001">
+        </div>
+        <div class="form-group">
+          <label>Technique Name *</label>
+          <input type="text" id="technique-name" placeholder="e.g. PowerShell">
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Additional Context (optional)</label>
+        <textarea id="description" rows="2" placeholder="e.g. Attacker using encoded PowerShell to download and execute a remote payload"></textarea>
+      </div>
+
+      <div class="quick-select">
+        <span>Quick select:</span>
+        <button onclick="quickSelect('T1059.001','PowerShell')">T1059.001 PowerShell</button>
+        <button onclick="quickSelect('T1003.001','LSASS Memory')">T1003.001 LSASS</button>
+        <button onclick="quickSelect('T1053.005','Scheduled Task')">T1053.005 Sched Task</button>
+        <button onclick="quickSelect('T1078','Valid Accounts')">T1078 Valid Accounts</button>
+        <button onclick="quickSelect('T1566.001','Spearphishing')">T1566.001 Phishing</button>
+      </div>
+
+      <button id="analyze-btn" onclick="runAnalysis()">⚔️ Run Purple Team Analysis</button>
+    </div>
+
+    <div id="loading" class="hidden">
+      <div class="spinner"></div>
+      <p id="loading-msg">Generating red team simulation...</p>
+    </div>
+
+    <div id="error-box" class="hidden error"></div>
+
+    <div id="results" class="hidden">
+
+      <!-- Coverage Score Banner -->
+      <div id="coverage-banner" class="coverage-banner">
+        <div class="coverage-left">
+          <div class="coverage-score" id="coverage-score"></div>
+          <div>
+            <div class="coverage-label">Detection Coverage Score</div>
+            <div id="coverage-rating" class="coverage-rating"></div>
+          </div>
+        </div>
+        <div class="coverage-right">
+          <div id="coverage-meta"></div>
+          <button id="export-btn" onclick="exportPDF()">📄 Export PDF Report</button>
+        </div>
+      </div>
+
+      <!-- Main Grid -->
+      <div class="main-grid">
+
+        <!-- RED TEAM PANEL -->
+        <div class="panel red-panel">
+          <div class="panel-header red-header">🔴 Red Team — Attack Simulation</div>
+          <div class="panel-body">
+
+            <div class="info-grid">
+              <div><span class="info-label">Tactic</span><span id="rt-tactic"></span></div>
+              <div><span class="info-label">Severity</span><span id="rt-severity" class="severity-badge"></span></div>
+              <div><span class="info-label">Stealth</span><span id="rt-stealth"></span></div>
+              <div><span class="info-label">Tools</span><span id="rt-tools"></span></div>
+            </div>
+
+            <p id="rt-description" class="description-text"></p>
+            <p id="rt-realworld" class="realworld-text"></p>
+
+            <h3>Simulation Commands</h3>
+            <div id="rt-commands"></div>
+
+            <h3>Expected Log Evidence</h3>
+            <div id="rt-evidence"></div>
+
+            <h3>IOCs Generated</h3>
+            <div id="rt-iocs"></div>
+          </div>
+        </div>
+
+        <!-- BLUE TEAM PANEL -->
+        <div class="panel blue-panel">
+          <div class="panel-header blue-header">🔵 Blue Team — Detection Engineering</div>
+          <div class="panel-body">
+
+            <div class="info-grid">
+              <div><span class="info-label">False Positive Rate</span><span id="bt-fp-rate"></span></div>
+              <div><span class="info-label">Detection Gaps</span><span id="bt-gaps-count"></span></div>
+            </div>
+
+            <p id="bt-fp-notes" class="description-text"></p>
+
+            <h3>Detection Gaps</h3>
+            <div id="bt-gaps"></div>
+
+            <h3>Detection Rules</h3>
+            <div class="tabs">
+              <button class="tab active" onclick="showTab('sigma', this)">Sigma</button>
+              <button class="tab" onclick="showTab('splunk', this)">Splunk SPL</button>
+              <button class="tab" onclick="showTab('kql', this)">KQL</button>
+              <button class="tab" onclick="showTab('wazuh', this)">Wazuh XML</button>
+            </div>
+            <div id="tab-sigma" class="tab-content active">
+              <div class="code-header"><span>Sigma Rule</span><button onclick="copyCode('code-sigma')">Copy</button></div>
+              <pre id="code-sigma"></pre>
+            </div>
+            <div id="tab-splunk" class="tab-content hidden">
+              <div class="code-header"><span>Splunk SPL</span><button onclick="copyCode('code-splunk')">Copy</button></div>
+              <pre id="code-splunk"></pre>
+            </div>
+            <div id="tab-kql" class="tab-content hidden">
+              <div class="code-header"><span>KQL — Sentinel</span><button onclick="copyCode('code-kql')">Copy</button></div>
+              <pre id="code-kql"></pre>
+            </div>
+            <div id="tab-wazuh" class="tab-content hidden">
+              <div class="code-header"><span>Wazuh XML</span><button onclick="copyCode('code-wazuh')">Copy</button></div>
+              <pre id="code-wazuh"></pre>
+            </div>
+
+            <h3>Threat Hunting Queries</h3>
+            <div id="bt-hunts"></div>
+
+            <h3>MITRE Mitigations</h3>
+            <div id="bt-mitigations"></div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Coverage Explanation -->
+      <div class="card">
+        <h2>📊 Coverage Analysis</h2>
+        <p id="coverage-explanation"></p>
+      </div>
+
+    </div>
+  </div>
+
+  <script>
+    let currentData = null;
+
+    function quickSelect(id, name) {
+      document.getElementById('technique-id').value = id;
+      document.getElementById('technique-name').value = name;
+    }
+
+    async function runAnalysis() {
+      const tid = document.getElementById('technique-id').value.trim();
+      const tname = document.getElementById('technique-name').value.trim();
+      const desc = document.getElementById('description').value.trim();
+
+      if (!tid || !tname) { alert('Please enter both a Technique ID and Name.'); return; }
+
+      document.getElementById('results').classList.add('hidden');
+      document.getElementById('error-box').classList.add('hidden');
+      document.getElementById('loading').classList.remove('hidden');
+      document.getElementById('analyze-btn').disabled = true;
+
+      const msgs = [
+        'Generating red team simulation...',
+        'Building attack commands...',
+        'Generating detection rules...',
+        'Scoring detection coverage...',
+        'Building purple team report...'
+      ];
+      let mi = 0;
+      const interval = setInterval(() => {
+        if (mi < msgs.length - 1) mi++;
+        document.getElementById('loading-msg').textContent = msgs[mi];
+      }, 4000);
+
+      try {
+        const res = await fetch('/analyze', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({technique_id: tid, technique_name: tname, description: desc})
+        });
+        const data = await res.json();
+        if (data.error) throw new Error(data.error);
+        currentData = data;
+        renderResults(data);
+      } catch (err) {
+        const eb = document.getElementById('error-box');
+        eb.textContent = 'Error: ' + err.message;
+        eb.classList.remove('hidden');
+      } finally {
+        clearInterval(interval);
+        document.getElementById('loading').classList.add('hidden');
+        document.getElementById('analyze-btn').disabled = false;
+      }
+    }
+
+    function renderResults(data) {
+      const rt = data.red_team;
+      const bt = data.blue_team;
+      const score = bt.detection_coverage?.score || 0;
+
+      // Coverage banner
+      const scoreEl = document.getElementById('coverage-score');
+      scoreEl.textContent = score + '/100';
+      scoreEl.className = 'coverage-score ' + (score >= 80 ? 'score-good' : score >= 60 ? 'score-medium' : 'score-poor');
+      document.getElementById('coverage-rating').textContent = bt.detection_coverage?.rating || '';
+      document.getElementById('coverage-meta').innerHTML =
+        `<b>Technique:</b> ${rt.technique_id} — ${rt.technique_name}<br>
+         <b>Tactic:</b> ${rt.tactic}<br>
+         <b>Gaps Found:</b> ${bt.detection_gaps?.length || 0}`;
+
+      // Red team
+      document.getElementById('rt-tactic').textContent = rt.tactic || '';
+      const sev = document.getElementById('rt-severity');
+      sev.textContent = rt.severity;
+      sev.className = 'severity-badge sev-' + (rt.severity||'').toLowerCase();
+      document.getElementById('rt-stealth').textContent = rt.stealth_level || '';
+      document.getElementById('rt-tools').textContent = (rt.attack_tools||[]).join(', ');
+      document.getElementById('rt-description').textContent = rt.attack_description || '';
+      document.getElementById('rt-realworld').innerHTML = '<b>Real-world:</b> ' + (rt.real_world_examples || '');
+
+      // Commands
+      document.getElementById('rt-commands').innerHTML = (rt.simulation_commands||[]).map((c,i) => `
+        <div class="command-block">
+          <div class="command-meta">${i+1}. ${c.platform} / ${c.shell} — ${c.description}</div>
+          <pre class="command-code">${c.command}</pre>
+          ${c.cleanup ? `<div class="command-cleanup">Cleanup: ${c.cleanup}</div>` : ''}
+        </div>`).join('');
+
+      // Evidence
+      document.getElementById('rt-evidence').innerHTML = `
+        <table class="evidence-table">
+          <thead><tr><th>Log Source</th><th>Event ID</th><th>Field</th><th>Value</th><th>Significance</th></tr></thead>
+          <tbody>${(rt.expected_log_evidence||[]).map(e => `
+            <tr><td>${e.log_source}</td><td>${e.event_id}</td><td>${e.field}</td>
+            <td class="mono">${e.value}</td><td>${e.significance}</td></tr>`).join('')}
+          </tbody>
+        </table>`;
+
+      // IOCs
+      document.getElementById('rt-iocs').innerHTML = (rt.iocs||[]).map(i =>
+        `<span class="ioc-tag">${i}</span>`).join('');
+
+      // Blue team
+      document.getElementById('bt-fp-rate').textContent = bt.false_positive_rate || '';
+      document.getElementById('bt-gaps-count').textContent = (bt.detection_gaps||[]).length + ' gaps identified';
+      document.getElementById('bt-fp-notes').textContent = bt.false_positive_notes || '';
+
+      // Gaps
+      document.getElementById('bt-gaps').innerHTML = (bt.detection_gaps||[]).map(g => `
+        <div class="gap-item gap-${(g.risk||'').toLowerCase()}">
+          <div class="gap-header"><span class="gap-risk">${g.risk}</span> ${g.gap}</div>
+          <div class="gap-rec">→ ${g.recommendation}</div>
+        </div>`).join('');
+
+      // Rules
+      document.getElementById('code-sigma').textContent = bt.sigma || '';
+      document.getElementById('code-splunk').textContent = bt.splunk_spl || '';
+      document.getElementById('code-kql').textContent = bt.kql || '';
+      document.getElementById('code-wazuh').textContent = bt.wazuh_xml || '';
+
+      // Hunt queries
+      document.getElementById('bt-hunts').innerHTML = (bt.hunt_queries||[]).map(h => `
+        <div class="hunt-item">
+          <div class="hunt-meta">${h.platform} — ${h.description}</div>
+          <pre class="command-code">${h.query}</pre>
+        </div>`).join('');
+
+      // Mitigations
+      document.getElementById('bt-mitigations').innerHTML = (bt.mitigations||[]).map(m => `
+        <div class="mitigation-item">
+          <span class="mit-id">${m.mitre_mitigation_id}</span>
+          <span class="mit-name">${m.mitigation_name}</span>
+          <p class="mit-desc">${m.description}</p>
+        </div>`).join('');
+
+      // Coverage explanation
+      document.getElementById('coverage-explanation').textContent =
+        bt.detection_coverage?.explanation || '';
+
+      document.getElementById('results').classList.remove('hidden');
+      document.getElementById('results').scrollIntoView({behavior: 'smooth'});
+    }
+
+    async function exportPDF() {
+      if (!currentData) return;
+      document.getElementById('export-btn').textContent = '⏳ Generating PDF...';
+      document.getElementById('export-btn').disabled = true;
+      try {
+        const res = await fetch('/export-pdf', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify(currentData)
+        });
+        const blob = await res.blob();
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `purple_report_${currentData.red_team.technique_id}.pdf`;
+        a.click();
+        URL.revokeObjectURL(url);
+      } catch (err) {
+        alert('PDF export failed: ' + err.message);
+      } finally {
+        document.getElementById('export-btn').textContent = '📄 Export PDF Report';
+        document.getElementById('export-btn').disabled = false;
+      }
+    }
+
+    function showTab(name, btn) {
+      document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+      document.querySelectorAll('.tab').forEach(el => el.classList.remove('active'));
+      document.getElementById('tab-' + name).classList.remove('hidden');
+      btn.classList.add('active');
+    }
+
+    function copyCode(id) {
+      navigator.clipboard.writeText(document.getElementById(id).textContent);
+      event.target.textContent = 'Copied!';
+      setTimeout(() => event.target.textContent = 'Copy', 1500);
+    }
+  </script>
+</body>
+</html>

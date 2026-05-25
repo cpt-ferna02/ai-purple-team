@@ -333,7 +333,7 @@ Remove-Item -Recurse -Force .git
 ## 🔒 Security Notes
 
 - Never commit your `.env` file — it is listed in `.gitignore`
-- The `exports/` folder is also git-ignored to avoid leaking generated reports
+- The `exports/` folder contains only the sample report — never commit sensitive generated reports here
 - This tool is intended for **authorized security testing and research only**
 
 ---
